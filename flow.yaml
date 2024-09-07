@@ -1,0 +1,27 @@
+---
+flows:
+  echo:
+    steps:
+      - sh: echo "{{ .args }}"
+  count:
+    steps:
+      - defer:
+          sh: echo "10"
+      - group:
+          - go: 
+              sh: echo "1"
+          - go: 
+              sh: echo "2"
+          - go: 
+              sh: echo "3"
+      - sh: echo "4"
+      - range: [5, 6, 7]
+        sh: echo "{{ .item }}"
+      - go: 
+          sh: echo "8"
+      - if:
+          sh: exit 1
+        sh: echo "-1"
+      - if:
+          sh: exit 0
+        sh: echo "9"
