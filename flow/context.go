@@ -3,6 +3,9 @@ package flow
 import (
 	"bytes"
 	"context"
+	"errors"
+	"os"
+	"strings"
 	"sync"
 	"text/template"
 
@@ -34,12 +37,16 @@ func NewContext(flowfile types.Flowfile, workdir, homedir, args string) *Context
 }
 
 func (c *Context) Execute(ctx context.Context, flow types.Flow) error {
+	return c.executeFlow(ctx, flow, osEnviron(), nil)
+}
+
+func (c *Context) executeFlow(ctx context.Context, flow types.Flow, envs map[string]string, vars map[string]any) error {
 	if flow.If != nil {
-		if err := c.executeStep(ctx, *flow.If, flow.Envs, flow.Vars); err != nil {
+		if err := c.executeStep(ctx, *flow.If, mergeMaps(envs, flow.Envs), mergeMaps(vars, flow.Vars)); err != nil {
 			return nil
 		}
 	}
-	return c.executeSteps(ctx, flow.Steps, flow.Envs, flow.Vars)
+	return c.executeSteps(ctx, flow.Steps, mergeMaps(envs, flow.Envs), mergeMaps(vars, flow.Vars))
 }
 
 func (c *Context) executeSteps(ctx context.Context, steps []types.Step, envs map[string]string, vars map[string]any) error {
@@ -90,6 +97,13 @@ func (c *Context) executeStep(ctx context.Context, step types.Step, envs map[str
 	if step.Shell != "" {
 		return c.shellRunner.Run(ctx, c.templ(step.Shell, vars), mapToSlice(envs))
 	}
+	if step.Flow != "" {
+		flow, ok := c.flowfile.Flows[step.Flow]
+		if ok {
+			return c.executeFlow(ctx, flow, envs, vars)
+		}
+		return errors.New("flow not found: " + step.Flow)
+	}
 	return nil
 }
 
@@ -126,4 +140,13 @@ func mapToSlice(m map[string]string) []string {
 		result = append(result, k+"="+v)
 	}
 	return result
+}
+
+func osEnviron() map[string]string {
+	envs := make(map[string]string)
+	for _, e := range os.Environ() {
+		pair := strings.SplitN(e, "=", 2)
+		envs[pair[0]] = pair[1]
+	}
+	return envs
 }

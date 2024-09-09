@@ -23,6 +23,7 @@ type Step struct {
 	Envs  map[string]string `yaml:"envs"`
 	Vars  map[string]any    `yaml:"vars"`
 	Shell string            `yaml:"sh"`
+	Flow  string            `yaml:"flow"`
 
 	// Controls
 	If    *Step  `yaml:"if"`

@@ -1,8 +1,21 @@
 ---
 flows:
+  setup:
+    steps:
+      - sh: |
+          echo "PATH_add: bin" >> .envrc
+  build:
+    steps:
+      - sh: go build -o ./bin/flow .
   echo:
     steps:
       - sh: echo "{{ .args }}"
+  print_3:
+    steps:
+      - sh: echo "3"
+  exit:
+    steps:
+      - sh: exit 3
   count:
     steps:
       - defer:
@@ -13,7 +26,7 @@ flows:
           - go: 
               sh: echo "2"
           - go: 
-              sh: echo "3"
+              flow: print_3
       - sh: echo "4"
       - range: [5, 6, 7]
         sh: echo "{{ .item }}"
